@@ -2,17 +2,14 @@ import streamlit as st
 from groq import Groq
 import re
 
-# Konfiguracja okna aplikacji - szeroki układ
-st.set_page_config(page_title="AI Sales Coach - Pro Edition", layout="wide", initial_sidebar_state="expanded")
+st.set_page_config(page_title="AI Sales Coach - Agency Standard", layout="wide", initial_sidebar_state="expanded")
 
-# BEZPIECZEŃSTWO: Pobieranie klucza z ukrytego sejfu chmury (Secrets)
 KLUCZ_API = st.secrets["GROQ_API_KEY"]
 
-# --- PAMIĘĆ APLIKACJI (SESSION STATE) ---
 if "analiza_nieruchomosci" not in st.session_state:
     st.session_state.analiza_nieruchomosci = None
 if "pytania_spin" not in st.session_state:
-    st.session_state.pytania_spin = "Wklej ogłoszenie po lewej stronie i wygeneruj strategię, aby przygotować pytania SPIN."
+    st.session_state.pytania_spin = "Wklej ogłoszenie po lewej stronie, aby wygenerować pytania badające."
 if "szansa_na_spotkanie" not in st.session_state:
     st.session_state.szansa_na_spotkanie = 10
 if "liczba_obiekcji" not in st.session_state:
@@ -28,7 +25,7 @@ def pobierz_klienta_ai():
         return None
     return Groq(api_key=KLUCZ_API)
 
-# --- BOCZNY PASEK (SIDEBAR) ---
+# --- BOCZNY PASEK ---
 with st.sidebar:
     st.title("⚙️ Baza Danych")
     st.markdown("Przygotuj system przed wykonaniem połączenia.")
@@ -38,10 +35,10 @@ with st.sidebar:
     if st.button("🔥 GENERUJ STRATEGIĘ", use_container_width=True):
         client = pobierz_klienta_ai()
         if client and opis:
-            with st.spinner("Przetwarzanie danych..."):
+            with st.spinner("Analiza w toku..."):
                 try:
-                    prompt_analizy = f"""Jesteś analitykiem rynku nieruchomości. Przeanalizuj to ogłoszenie: '{opis}'
-                    Wyciągnij w punktach: 1. Główne atuty 2. Słabe punkty (pole do negocjacji) 3. Krótka strategia."""
+                    prompt_analizy = f"""Przeanalizuj to ogłoszenie: '{opis}'
+                    Wyciągnij: 1. Główne atuty 2. Słabe punkty (pole do negocjacji)."""
                     
                     response_analiza = client.chat.completions.create(
                         model="llama-3.3-70b-versatile",
@@ -50,9 +47,9 @@ with st.sidebar:
                     )
                     st.session_state.analiza_nieruchomosci = response_analiza.choices[0].message.content
                     
-                    prompt_spin = f"""Jesteś elitarnym trenerem sprzedaży nieruchomości. Na podstawie tego ogłoszenia mieszkania: '{opis}'
-                    Zbuduj dokładnie 3 genialne, otwarte pytania w metodologii SPIN Selling (Sytuacja, Problem, Implikacja, Potrzeba), 
-                    które agent może zadać właścicielowi na początku rozmowy. Zwracaj się do rozmówcy na 'Pan/Pani/Państwo'."""
+                    prompt_spin = f"""Na podstawie tego ogłoszenia: '{opis}'
+                    Zbuduj 3 otwarte pytania, które agent może zadać na początku rozmowy. 
+                    Zwracaj się do rozmówcy na 'Pan/Pani/Państwo'."""
 
                     response_spin = client.chat.completions.create(
                         model="llama-3.3-70b-versatile",
@@ -60,7 +57,6 @@ with st.sidebar:
                         max_tokens=400
                     )
                     st.session_state.pytania_spin = response_spin.choices[0].message.content
-                    
                     st.session_state.szansa_na_spotkanie = 15
                     st.session_state.liczba_obiekcji = 0
                     st.session_state.historia_rozmowy = []
@@ -69,15 +65,13 @@ with st.sidebar:
 
     if st.session_state.analiza_nieruchomosci:
         st.success("Strategia gotowa.")
-        with st.expander("Podgląd Strategii"):
-            st.write(st.session_state.analiza_nieruchomosci)
 
 # --- GŁÓWNY EKRAN ---
 st.title("🎙️ AI Sales Coach - Live Dashboard")
 
 m1, m2, m3 = st.columns(3)
 with m1:
-    st.metric(label="Szansa na spotkanie (AI ocena)", value=f"{st.session_state.szansa_na_spotkanie}%")
+    st.metric(label="Szansa na spotkanie", value=f"{st.session_state.szansa_na_spotkanie}%")
 with m2:
     st.metric(label="Przepracowane obiekcje", value=st.session_state.liczba_obiekcji)
 with m3:
@@ -85,13 +79,13 @@ with m3:
 
 st.divider()
 
-st.subheader("🟡 Koło Ratunkowe: Pytania SPIN do zadania na początku rozmowy")
+st.subheader("🟡 Koło Ratunkowe: Pytania do zadania na początku")
 st.warning(st.session_state.pytania_spin)
 
 st.divider()
 
-# ROZBUDOWANA SIATKA OBIEKCJI (3x3)
-st.subheader("🔥 Właściciel rzuca obiekcję w słuchawkę:")
+# SIATKA OBIEKCJI OPARTA NA PREZENTACJI MENEDŻERA
+st.subheader("🔥 Właściciel rzuca obiekcję:")
 r1_col1, r1_col2, r1_col3 = st.columns(3)
 r2_col1, r2_col2, r2_col3 = st.columns(3)
 r3_col1, r3_col2, r3_col3 = st.columns(3)
@@ -100,68 +94,78 @@ obiekcja_kliknieta = None
 nazwa_przycisku = ""
 
 with r1_col1:
-    if st.button("🚨 Mam już agencję", use_container_width=True): 
-        obiekcja_kliknieta = "Mam już spisaną umowę z inną agencją nieruchomości."
-        nazwa_przycisku = "Mam już agencję"
-with r1_col2:
-    if st.button("🚨 Prowizja za wysoka", use_container_width=True): 
-        obiekcja_kliknieta = "Wasza prowizja jest zdecydowanie za wysoka, inni biorą mniej."
-        nazwa_przycisku = "Prowizja za wysoka"
-with r1_col3:
     if st.button("🚨 Sprzedam sam", use_container_width=True): 
         obiekcja_kliknieta = "Nie potrzebuję pośredników, poradzę sobie ze sprzedażą sam."
         nazwa_przycisku = "Sprzedam sam"
+with r1_col2:
+    if st.button("🚨 Nie płacę prowizji", use_container_width=True): 
+        obiekcja_kliknieta = "Nie chcę płacić prowizji, to za duży koszt."
+        nazwa_przycisku = "Nie płacę prowizji"
+with r1_col3:
+    if st.button("🚨 Mam już pośrednika", use_container_width=True): 
+        obiekcja_kliknieta = "Mam już podpisaną umowę z innym pośrednikiem."
+        nazwa_przycisku = "Mam już pośrednika"
 
 with r2_col1:
-    if st.button("🚨 Zadzwonić później", use_container_width=True): 
-        obiekcja_kliknieta = "Proszę zadzwonić za miesiąc, na razie dopiero wystawiłem."
-        nazwa_przycisku = "Zadzwonić później"
+    if st.button("🚨 Zapraszam z klientem", use_container_width=True): 
+        obiekcja_kliknieta = "Jak ma Pan klienta, to proszę przyjść, ale bez umowy."
+        nazwa_przycisku = "Zapraszam z klientem"
 with r2_col2:
-    if st.button("🚨 Nie śpieszy mi się", use_container_width=True): 
-        obiekcja_kliknieta = "Mnie się nie śpieszy ze sprzedażą, mogę poczekać na klienta."
-        nazwa_przycisku = "Nie śpieszy mi się"
+    if st.button("🚨 Pośrednicy nic nie robią", use_container_width=True): 
+        obiekcja_kliknieta = "Pośrednicy nic nie robią, tylko wrzucają ogłoszenie na portal."
+        nazwa_przycisku = "Pośrednicy nic nie robią"
 with r2_col3:
-    if st.button("🚨 Nie zejdę z ceny", use_container_width=True): 
-        obiekcja_kliknieta = "Chcę dostać dokładnie tyle ile w ogłoszeniu, zero negocjacji."
-        nazwa_przycisku = "Nie zejdę z ceny"
+    if st.button("🚨 Nie podpisuję umów", use_container_width=True): 
+        obiekcja_kliknieta = "Nie chcę wiązać się żadnymi umowami na wyłączność."
+        nazwa_przycisku = "Nie podpisuję umów"
 
-# NOWE OBIEKCJE
 with r3_col1:
-    if st.button("🚨 Nie współpracuję z agencjami", use_container_width=True): 
-        obiekcja_kliknieta = "Z zasady nie współpracuję z żadnymi pośrednikami i agencjami."
-        nazwa_przycisku = "Nie współpracuję"
-with r3_col2:
-    if st.button("🚨 Przyprowadź klienta", use_container_width=True): 
-        obiekcja_kliknieta = "Jak ma Pan klienta, to proszę przyprowadzić, ale umowy nie podpiszę."
-        nazwa_przycisku = "Przyprowadź klienta"
-with r3_col3:
     if st.button("🚨 Mam już kupca", use_container_width=True): 
-        obiekcja_kliknieta = "Mam już zdecydowanego klienta, jutro daje zadatek."
+        obiekcja_kliknieta = "Mam już kogoś chętnego, jutro dajemy zadatek."
         nazwa_przycisku = "Mam już kupca"
+with r3_col2:
+    if st.button("🚨 Nie wpuszczam obcych", use_container_width=True): 
+        obiekcja_kliknieta = "Nie chcę wpuszczać obcych ludzi do mieszkania żeby tylko oglądali."
+        nazwa_przycisku = "Nie wpuszczam obcych"
+with r3_col3:
+    if st.button("🚨 Nie mam czasu", use_container_width=True): 
+        obiekcja_kliknieta = "Nie mam teraz czasu na spotkania i rozmowy o sprzedaży."
+        nazwa_przycisku = "Nie mam czasu"
 
 if obiekcja_kliknieta:
     client = pobierz_klienta_ai()
     if client:
         st.session_state.liczba_obiekcji += 1
-        kontekst = st.session_state.analiza_nieruchomosci if st.session_state.analiza_nieruchomosci else "Brak danych o mieszkaniu."
+        kontekst = st.session_state.analiza_nieruchomosci if st.session_state.analiza_nieruchomosci else "Brak danych."
         
-        with st.spinner("AI analizuje sytuację..."):
+        with st.spinner("AI generuje ripostę zgodnie ze standardami agencji..."):
             try:
-                prompt_rozmowy = f"""Jesteś elitarnym coachem sprzedaży. 
+                # POTĘŻNY PROMPT SYSTEMOWY OPARTY NA PREZENTACJI
+                prompt_rozmowy = f"""Jesteś doradcą ds. nieruchomości. Twoim celem jest zaciekawić, zbudować zaufanie i umówić spotkanie.
+                Nie sprzedajesz umowy ani prowizji - sprzedajesz spokój, bezpieczeństwo i skuteczność.
                 Strategia ogłoszenia: {kontekst}
                 Klient mówi: '{obiekcja_kliknieta}'
                 
-                WYMOGI ODPOWIEDZI:
-                1. ZWRACAJ SIĘ DO KLIENTA WYŁĄCZNIE W FORMIE GRZECZNOŚCIOWEJ: 'Pan', 'Pani' lub 'Państwo'. 
-                2. Bezwzględnie unikaj mówienia do klienta na 'Ty'. Pełen profesjonalizm biznesowy.
-                3. Musisz odpowiedzieć dokładnie w takim formacie:
-                ODPOWIEDZ: [Tutaj wpisz profesjonalną, krótką na 2 zdania ripostę sprzedażową. Użyj argumentów z ogłoszenia.]
-                SZANSA: [Tutaj wpisz tylko i wyłącznie jedną liczbę od 1 do 100, określającą szansę na spotkanie]"""
+                ZASADY ODPOWIEDZI (BEZWZGLĘDNE):
+                1. Mów na 'Pan/Pani/Państwo'. Nigdy na 'Ty'.
+                2. SCHEMAT: Najpierw przyjmij obiekcję (np. 'Rozumiem'), potem zadaj pytanie pogłębiające, a dopiero potem krótko użyj języka korzyści. Rozmowa to konsultacja, a nie walka.
+                3. BAZA WIEDZY DO WYKORZYSTANIA (użyj odpowiedniej w zależności od obiekcji):
+                   - Sprzedam sam: Zapytaj jak długo sprzedają. Wielu zaczyna samemu, naszą rolą jest skrócenie procesu i bezpieczeństwo.
+                   - Prowizja: Pytaj, czy gdyby sprzedano drożej/szybciej to byłby problem. Analogia z samochodem z komisu. Koszt to źle przeprowadzona sprzedaż, nie prowizja.
+                   - Mam pośrednika: Nie krytykuj! Zapytaj czy wyłączność czy otwarta, czy są zadowoleni z liczby prezentacji. 
+                   - Z klientem: Zapytaj co jeśli ten jeden nie kupi? Nie uzależniamy sprzedaży od jednego klienta.
+                   - Brak czasu: Dlatego dzwonię. Przejmujemy pracę, jedno spotkanie odciąży od setek telefonów.
+                   - Nie wpuszczam obcych: My weryfikujemy klientów przed prezentacją.
+                   - Umowa: Nie naciskaj na umowę. Proponujesz spotkanie, żeby pokazać jak pracujecie. Nic to nie kosztuje.
+                
+                WYMOGI FORMATU:
+                ODPOWIEDZ: [Krótka, naturalna riposta zgodna z Zasadami]
+                SZANSA: [Liczba od 1 do 100 określająca % szansy na spotkanie]"""
 
                 response = client.chat.completions.create(
                     model="llama-3.3-70b-versatile",
                     messages=[{"role": "user", "content": prompt_rozmowy}],
-                    max_tokens=300
+                    max_tokens=350
                 )
                 
                 wynik = response.choices[0].message.content
@@ -193,7 +197,7 @@ st.divider()
 kol_lewa, kol_prawa = st.columns(2)
 
 with kol_lewa:
-    st.subheader("💡 Najnowsza wskazówka AI (Czytaj teraz):")
+    st.subheader("💡 Odpowiedź AI (Standard Firmowy):")
     st.info(st.session_state.ostatnia_odpowiedz)
     
     if st.session_state.szansa_na_spotkanie > 60:
@@ -206,7 +210,7 @@ with kol_prawa:
     else:
         for index, krok in enumerate(reversed(st.session_state.historia_rozmowy)):
             with st.chat_message("user"):
-                st.write(f"**Klient rzucił obiekcję:** {krok['klient']} (Szansa: {krok['procent']}%)")
+                st.write(f"**Klient:** {krok['klient']} (Szansa: {krok['procent']}%)")
             with st.chat_message("assistant"):
-                st.write(f"**AI podpowiedziało:** {krok['ai']}")
+                st.write(f"**Ty:** {krok['ai']}")
             st.text("---")

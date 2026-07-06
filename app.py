@@ -90,9 +90,11 @@ st.warning(st.session_state.pytania_spin)
 
 st.divider()
 
+# ROZBUDOWANA SIATKA OBIEKCJI (3x3)
 st.subheader("🔥 Właściciel rzuca obiekcję w słuchawkę:")
 r1_col1, r1_col2, r1_col3 = st.columns(3)
 r2_col1, r2_col2, r2_col3 = st.columns(3)
+r3_col1, r3_col2, r3_col3 = st.columns(3)
 
 obiekcja_kliknieta = None
 nazwa_przycisku = ""
@@ -109,6 +111,7 @@ with r1_col3:
     if st.button("🚨 Sprzedam sam", use_container_width=True): 
         obiekcja_kliknieta = "Nie potrzebuję pośredników, poradzę sobie ze sprzedażą sam."
         nazwa_przycisku = "Sprzedam sam"
+
 with r2_col1:
     if st.button("🚨 Zadzwonić później", use_container_width=True): 
         obiekcja_kliknieta = "Proszę zadzwonić za miesiąc, na razie dopiero wystawiłem."
@@ -121,6 +124,20 @@ with r2_col3:
     if st.button("🚨 Nie zejdę z ceny", use_container_width=True): 
         obiekcja_kliknieta = "Chcę dostać dokładnie tyle ile w ogłoszeniu, zero negocjacji."
         nazwa_przycisku = "Nie zejdę z ceny"
+
+# NOWE OBIEKCJE
+with r3_col1:
+    if st.button("🚨 Nie współpracuję z agencjami", use_container_width=True): 
+        obiekcja_kliknieta = "Z zasady nie współpracuję z żadnymi pośrednikami i agencjami."
+        nazwa_przycisku = "Nie współpracuję"
+with r3_col2:
+    if st.button("🚨 Przyprowadź klienta", use_container_width=True): 
+        obiekcja_kliknieta = "Jak ma Pan klienta, to proszę przyprowadzić, ale umowy nie podpiszę."
+        nazwa_przycisku = "Przyprowadź klienta"
+with r3_col3:
+    if st.button("🚨 Mam już kupca", use_container_width=True): 
+        obiekcja_kliknieta = "Mam już zdecydowanego klienta, jutro daje zadatek."
+        nazwa_przycisku = "Mam już kupca"
 
 if obiekcja_kliknieta:
     client = pobierz_klienta_ai()

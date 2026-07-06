@@ -2,10 +2,13 @@ import streamlit as st
 from groq import Groq
 import re
 
+# Konfiguracja okna aplikacji - szeroki układ i nowa nazwa
 st.set_page_config(page_title="AI Sales Coach - Agency Standard", layout="wide", initial_sidebar_state="expanded")
 
+# BEZPIECZEŃSTWO: Pobieranie klucza z ukrytego sejfu chmury (Secrets)
 KLUCZ_API = st.secrets["GROQ_API_KEY"]
 
+# --- PAMIĘĆ APLIKACJI (SESSION STATE) ---
 if "analiza_nieruchomosci" not in st.session_state:
     st.session_state.analiza_nieruchomosci = None
 if "pytania_spin" not in st.session_state:
@@ -25,7 +28,7 @@ def pobierz_klienta_ai():
         return None
     return Groq(api_key=KLUCZ_API)
 
-# --- BOCZNY PASEK ---
+# --- BOCZNY PASEK (SIDEBAR) ---
 with st.sidebar:
     st.title("⚙️ Baza Danych")
     st.markdown("Przygotuj system przed wykonaniem połączenia.")
@@ -47,6 +50,7 @@ with st.sidebar:
                     )
                     st.session_state.analiza_nieruchomosci = response_analiza.choices[0].message.content
                     
+                    # NAPRAWIONY PROMPT SPIN - WYŁĄCZNIE DLA WŁAŚCICIELI
                     prompt_spin = f"""Jesteś doradcą ds. nieruchomości dzwoniącym do WŁAŚCICIELA, który wystawił to mieszkanie na sprzedaż: '{opis}'.
                     Zbuduj 3 otwarte, nienachalne pytania (technika SPIN), które zadasz SPRZEDAJĄCEMU na początku rozmowy (cold call), aby zbadać jego motywację, czas na rynku i ewentualne trudności ze sprzedażą.
                     Kategoryczny zakaz zadawania pytań z perspektywy kupującego (nie pytaj o budżet ani jakiego mieszkania szuka).
@@ -66,6 +70,10 @@ with st.sidebar:
 
     if st.session_state.analiza_nieruchomosci:
         st.success("Strategia gotowa.")
+        
+    # --- STOPKA AUTORSKA ---
+    st.markdown("<br><br><br>", unsafe_allow_html=True) 
+    st.markdown("<div style='text-align: center; color: gray; font-size: 12px;'>Designed and deployed by Paweł Ciszewski 🚀</div>", unsafe_allow_html=True)
 
 # --- GŁÓWNY EKRAN ---
 st.title("🎙️ Cold Calls - Make it SIMPLE as f*ck")

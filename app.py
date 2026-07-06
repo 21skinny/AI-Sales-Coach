@@ -67,7 +67,7 @@ with st.sidebar:
         st.success("Strategia gotowa.")
 
 # --- GŁÓWNY EKRAN ---
-st.title("🎙️ AI Sales Coach - Live Dashboard")
+st.title("🎙️ Cold Calls - Make it SIMPLE as f*ck")
 
 m1, m2, m3 = st.columns(3)
 with m1:

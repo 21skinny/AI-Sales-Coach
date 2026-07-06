@@ -47,9 +47,10 @@ with st.sidebar:
                     )
                     st.session_state.analiza_nieruchomosci = response_analiza.choices[0].message.content
                     
-                    prompt_spin = f"""Na podstawie tego ogłoszenia: '{opis}'
-                    Zbuduj 3 otwarte pytania, które agent może zadać na początku rozmowy. 
-                    Zwracaj się do rozmówcy na 'Pan/Pani/Państwo'."""
+                    prompt_spin = f"""Jesteś doradcą ds. nieruchomości dzwoniącym do WŁAŚCICIELA, który wystawił to mieszkanie na sprzedaż: '{opis}'.
+                    Zbuduj 3 otwarte, nienachalne pytania (technika SPIN), które zadasz SPRZEDAJĄCEMU na początku rozmowy (cold call), aby zbadać jego motywację, czas na rynku i ewentualne trudności ze sprzedażą.
+                    Kategoryczny zakaz zadawania pytań z perspektywy kupującego (nie pytaj o budżet ani jakiego mieszkania szuka).
+                    Zwracaj się do właściciela per 'Pan/Pani/Państwo'."""
 
                     response_spin = client.chat.completions.create(
                         model="llama-3.3-70b-versatile",

@@ -2,10 +2,10 @@ import streamlit as st
 from groq import Groq
 import re
 
-# Konfiguracja okna aplikacji - szeroki układ i nowa nazwa
+# Konfiguracja okna aplikacji
 st.set_page_config(page_title="AI Sales Coach - Agency Standard", layout="wide", initial_sidebar_state="expanded")
 
-# BEZPIECZEŃSTWO: Pobieranie klucza z ukrytego sejfu chmury (Secrets)
+# BEZPIECZEŃSTWO: Pobieranie klucza z ukrytego sejfu
 KLUCZ_API = st.secrets["GROQ_API_KEY"]
 
 # --- PAMIĘĆ APLIKACJI (SESSION STATE) ---
@@ -21,6 +21,9 @@ if "ostatnia_odpowiedz" not in st.session_state:
     st.session_state.ostatnia_odpowiedz = "Czekam na pierwszą obiekcję..."
 if "historia_rozmowy" not in st.session_state:
     st.session_state.historia_rozmowy = [] 
+# NOWOŚĆ: Szufladka na wygenerowanego SMS-a
+if "wygenerowany_sms" not in st.session_state:
+    st.session_state.wygenerowany_sms = None
 
 def pobierz_klienta_ai():
     if not KLUCZ_API:
@@ -50,10 +53,9 @@ with st.sidebar:
                     )
                     st.session_state.analiza_nieruchomosci = response_analiza.choices[0].message.content
                     
-                    # NAPRAWIONY PROMPT SPIN - WYŁĄCZNIE DLA WŁAŚCICIELI
                     prompt_spin = f"""Jesteś doradcą ds. nieruchomości dzwoniącym do WŁAŚCICIELA, który wystawił to mieszkanie na sprzedaż: '{opis}'.
                     Zbuduj 3 otwarte, nienachalne pytania (technika SPIN), które zadasz SPRZEDAJĄCEMU na początku rozmowy (cold call), aby zbadać jego motywację, czas na rynku i ewentualne trudności ze sprzedażą.
-                    Kategoryczny zakaz zadawania pytań z perspektywy kupującego (nie pytaj o budżet ani jakiego mieszkania szuka).
+                    Kategoryczny zakaz zadawania pytań z perspektywy kupującego.
                     Zwracaj się do właściciela per 'Pan/Pani/Państwo'."""
 
                     response_spin = client.chat.completions.create(
@@ -62,9 +64,12 @@ with st.sidebar:
                         max_tokens=400
                     )
                     st.session_state.pytania_spin = response_spin.choices[0].message.content
+                    
+                    # Resetowanie statystyk przed nową rozmową
                     st.session_state.szansa_na_spotkanie = 15
                     st.session_state.liczba_obiekcji = 0
                     st.session_state.historia_rozmowy = []
+                    st.session_state.wygenerowany_sms = None
                 except Exception as e:
                     st.error(f"Błąd analizy: {e}")
 
@@ -93,7 +98,7 @@ st.warning(st.session_state.pytania_spin)
 
 st.divider()
 
-# SIATKA OBIEKCJI OPARTA NA PREZENTACJI MENEDŻERA
+# SIATKA OBIEKCJI
 st.subheader("🔥 Właściciel rzuca obiekcję:")
 r1_col1, r1_col2, r1_col3 = st.columns(3)
 r2_col1, r2_col2, r2_col3 = st.columns(3)
@@ -149,7 +154,6 @@ if obiekcja_kliknieta:
         
         with st.spinner("AI generuje ripostę zgodnie ze standardami agencji..."):
             try:
-                # POTĘŻNY PROMPT SYSTEMOWY OPARTY NA PREZENTACJI
                 prompt_rozmowy = f"""Jesteś doradcą ds. nieruchomości. Twoim celem jest zaciekawić, zbudować zaufanie i umówić spotkanie.
                 Nie sprzedajesz umowy ani prowizji - sprzedajesz spokój, bezpieczeństwo i skuteczność.
                 Strategia ogłoszenia: {kontekst}
@@ -160,12 +164,12 @@ if obiekcja_kliknieta:
                 2. SCHEMAT: Najpierw przyjmij obiekcję (np. 'Rozumiem'), potem zadaj pytanie pogłębiające, a dopiero potem krótko użyj języka korzyści. Rozmowa to konsultacja, a nie walka.
                 3. BAZA WIEDZY DO WYKORZYSTANIA (użyj odpowiedniej w zależności od obiekcji):
                    - Sprzedam sam: Zapytaj jak długo sprzedają. Wielu zaczyna samemu, naszą rolą jest skrócenie procesu i bezpieczeństwo.
-                   - Prowizja: Pytaj, czy gdyby sprzedano drożej/szybciej to byłby problem. Analogia z samochodem z komisu. Koszt to źle przeprowadzona sprzedaż, nie prowizja.
+                   - Prowizja: Pytaj, czy gdyby sprzedano drożej/szybciej to byłby problem. Koszt to źle przeprowadzona sprzedaż, nie prowizja.
                    - Mam pośrednika: Nie krytykuj! Zapytaj czy wyłączność czy otwarta, czy są zadowoleni z liczby prezentacji. 
                    - Z klientem: Zapytaj co jeśli ten jeden nie kupi? Nie uzależniamy sprzedaży od jednego klienta.
-                   - Brak czasu: Dlatego dzwonię. Przejmujemy pracę, jedno spotkanie odciąży od setek telefonów.
+                   - Brak czasu: Dlatego dzwonię. Przejmujemy pracę.
                    - Nie wpuszczam obcych: My weryfikujemy klientów przed prezentacją.
-                   - Umowa: Nie naciskaj na umowę. Proponujesz spotkanie, żeby pokazać jak pracujecie. Nic to nie kosztuje.
+                   - Umowa: Nie naciskaj na umowę. Proponujesz spotkanie.
                 
                 WYMOGI FORMATU:
                 ODPOWIEDZ: [Krótka, naturalna riposta zgodna z Zasadami]
@@ -196,6 +200,7 @@ if obiekcja_kliknieta:
                     "ai": odpowiedz_tekst,
                     "procent": szansa_nowa
                 })
+                st.session_state.wygenerowany_sms = None # Reset SMSa przy nowej obiekcji
                 st.rerun()
                 
             except Exception as e:
@@ -227,15 +232,41 @@ with kol_prawa:
 st.divider()
 
 # --- MODUŁ FEEDBACKU I ZAMKNIĘCIA ROZMOWY ---
-st.subheader("📊 Wynik rozmowy (Zapis do statystyk)")
+st.subheader("📊 Zamknięcie i Follow-up")
 col_sukces, col_porazka = st.columns(2)
 
 with col_sukces:
     if st.button("✅ UDAŁO SIĘ (Mamy spotkanie!)", use_container_width=True):
-        st.success("Boom! Świetna robota. Oś czasu rozmowy została oznaczona jako SUKCES.")
-        # Tutaj w przyszłości dodamy kod wysyłający logi do bazy danych
-        
+        client = pobierz_klienta_ai()
+        if client:
+            with st.spinner("Generowanie profesjonalnego SMS-a dla klienta..."):
+                try:
+                    przebieg = "\n".join([f"Klient: {k['klient']}" for k in st.session_state.historia_rozmowy])
+                    prompt_sms = f"""Jesteś elitarnym doradcą ds. nieruchomości (imię: Paweł, agencja: Simple).
+                    Właśnie zakończyłeś rozmowę z właścicielem mieszkania (cold call) i udało Ci się umówić na spotkanie, by ocenić potencjał nieruchomości.
+                    Przebieg rozmowy (obiekcje klienta): {przebieg}
+                    
+                    ZADANIE:
+                    Napisz krótkiego (max 3 zdania), ultra-profesjonalnego SMS-a z podziękowaniem za rozmowę.
+                    Użyj wstawki '[DATA I GODZINA]', w której Paweł ręcznie wpisze termin. 
+                    Nawiąż jednym zdaniem do obaw klienta z przebiegu rozmowy (np. jeśli klient mówił o prowizji, napisz, że pokażesz mu jak zoptymalizować zysk; jeśli mówił 'Sprzedam sam', napisz że pokażesz jak możemy przyspieszyć ten proces).
+                    Podpisz się na końcu: 'Paweł, agencja Simple'. 
+                    Bez powitań w stylu 'Oto twój SMS'. Zwróć od razu samą treść SMS-a."""
+                    
+                    response_sms = client.chat.completions.create(
+                        model="llama-3.3-70b-versatile",
+                        messages=[{"role": "user", "content": prompt_sms}],
+                        max_tokens=200
+                    )
+                    st.session_state.wygenerowany_sms = response_sms.choices[0].message.content
+                except Exception as e:
+                    st.error(f"Błąd generowania SMS: {e}")
+
 with col_porazka:
     if st.button("❌ NIE TYM RAZEM (Odmowa)", use_container_width=True):
-        st.info("Zapisano. Czasami po prostu się nie da. System wyciągnie z tego wnioski do statystyk.")
-        # Tutaj w przyszłości dodamy kod wysyłający logi do bazy danych
+        st.info("Zapisano. System wyciągnie wnioski na podstawie osi czasu do przyszłych statystyk.")
+
+# Wyświetlanie wygenerowanego SMS-a pod przyciskami
+if st.session_state.wygenerowany_sms:
+    st.success("🎉 Świetna robota! Skopiuj ten tekst i wyślij klientowi ze swojego telefonu:")
+    st.code(st.session_state.wygenerowany_sms, language="text")

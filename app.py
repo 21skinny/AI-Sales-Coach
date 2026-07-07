@@ -73,7 +73,7 @@ with st.sidebar:
         
     # --- STOPKA AUTORSKA ---
     st.markdown("<br><br><br>", unsafe_allow_html=True) 
-    st.markdown("<div style='text-align: center; color: gray; font-size: 12px;'>Designed and deployed by Paweł Ciszewski 🚀</div>", unsafe_allow_html=True)
+    st.markdown("<div style='text-align: center; color: gray; font-size: 12px;'>Designed and deployed by Paweł 🚀</div>", unsafe_allow_html=True)
 
 # --- GŁÓWNY EKRAN ---
 st.title("🎙️ Cold Calls - Make it SIMPLE as f*ck")
@@ -223,3 +223,19 @@ with kol_prawa:
             with st.chat_message("assistant"):
                 st.write(f"**Ty:** {krok['ai']}")
             st.text("---")
+
+st.divider()
+
+# --- MODUŁ FEEDBACKU I ZAMKNIĘCIA ROZMOWY ---
+st.subheader("📊 Wynik rozmowy (Zapis do statystyk)")
+col_sukces, col_porazka = st.columns(2)
+
+with col_sukces:
+    if st.button("✅ UDAŁO SIĘ (Mamy spotkanie!)", use_container_width=True):
+        st.success("Boom! Świetna robota. Oś czasu rozmowy została oznaczona jako SUKCES.")
+        # Tutaj w przyszłości dodamy kod wysyłający logi do bazy danych
+        
+with col_porazka:
+    if st.button("❌ NIE TYM RAZEM (Odmowa)", use_container_width=True):
+        st.info("Zapisano. Czasami po prostu się nie da. System wyciągnie z tego wnioski do statystyk.")
+        # Tutaj w przyszłości dodamy kod wysyłający logi do bazy danych
